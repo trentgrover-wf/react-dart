@@ -1,4 +1,5 @@
 html = """
+
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
@@ -161,17 +162,23 @@ html = """
 </html>
 """
 
-#html="""
-#<body pokus='true'>
-#    <div class='container', onclick={handler} >
-#        <div id='class'>Something here</div>
-#        <div>Something else</div>
-#    </div>
-#</body>
-#"""
+html="""
+<body pokus='true'>
+    <!-- zis is chinglish comet -->
+    <div class='container', onclick={handler} >
+        <div id='class'>Something here</div>
+        <div>Something else</div>
+    </div>
+</body>
+"""
+
+import sys
+if len(sys.argv)>=2:
+    filename=sys.argv[1]
+    html=open(filename,'r').read()
 
 from bs4 import BeautifulSoup as BS
-from bs4 import NavigableString
+from bs4 import NavigableString, Comment
 
 def _val(val):
     if isinstance(val, list):
@@ -190,6 +197,8 @@ def _key(key):
 
 def to_react(node, indent=0):
     indent_str = " "*4*indent
+    if isinstance(node,Comment):
+        return None
     if isinstance(node,NavigableString):
         if len(str(node).strip(' \n\t'))==0:
              return None
