@@ -148,11 +148,13 @@ html = """
 """
 
 html="""
-    <div class='container', onclick={handler} >
+    <div class='container' onclick="{handler}" >
     <!-- zis is chinglish comet -->
         <MyTag> mytag </MyTag>
-        <MyTag name = "jozo" /> 
-        <div id='class'>Something here</div>
+        <MyTag name = "{jozo}" /> 
+        <div id='class'>
+           <span> Something here </span>
+        </div>
         <div>Something else</div>
     </div>
 """
@@ -185,7 +187,10 @@ def _key(key):
 def make_comment(node):
     res = ' // ' + node.name
     if 'class' in node.attrs:
-        res+='(%s)'%node.attrs['class'][0]
+        cl = node.attrs['class']
+        if isinstance(cl, list):
+            cl = cl[0]
+        res+='(%s)'%cl
     return res
 
 def to_react(node, indent = 0, trailing_comma = False):
@@ -220,7 +225,6 @@ soup = BS(html, 'xml')
 #simple magic to find reasonable root element
 for parent in soup.find_all():
     if parent.name!='html' and parent.name!='body' and parent.name!='head':
-        print(parent.name)
         break
 print(to_react(parent))
 
