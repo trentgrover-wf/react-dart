@@ -147,9 +147,11 @@ html = """
 </html>
 """
 
-html1="""
+html="""
     <div class='container', onclick={handler} >
     <!-- zis is chinglish comet -->
+        <MyTag> mytag </MyTag>
+        <MyTag name = "jozo" /> 
         <div id='class'>Something here</div>
         <div>Something else</div>
     </div>
