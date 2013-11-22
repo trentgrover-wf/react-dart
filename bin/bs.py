@@ -2,10 +2,10 @@ html = """
 
 <html lang="en">
 <body>
-    <div id="wrap">
-        <header>
+    <Div id="wrap">
+        <Header>
             <!-- working version it may change -->
-            <div class="logo"></div>
+            <Div class="logo"></div>
             <div class="registration-header">
                 <a href="" class="login-btn">
                     prihlásenie
@@ -213,7 +213,7 @@ def to_react(node, indent = 0, trailing_comma = False):
     return '%s%s({%s}, %s)%s%s'%(indent_str,node.name,props,children,comma,comment)
 
 
-soup = BS(html)
+soup = BS(html, 'xml')
 
 #simple magic to find reasonable root element
 for parent in soup.find_all():
