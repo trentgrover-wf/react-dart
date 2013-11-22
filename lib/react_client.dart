@@ -63,7 +63,9 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
    * only wrap componentWillMount
    */
   var componentWillMount = new JsFunction.withThis((jsThis) {
-    _getComponent(jsThis).componentWillMount();
+    _getComponent(jsThis)
+        ..componentWillMount()
+        ..transferComponentState();
   });
 
   /**
@@ -76,7 +78,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
   /**
    * wrap componentWillReceiveProps
    */
-  var componentWillReceiveProps = new JsFunction.withThis((jsThis, newArgs, reactInternal) {
+  var componentWillReceiveProps = new JsFunction.withThis((jsThis, newArgs, [reactInternal]) {
     var component = _getComponent(jsThis);
     var newProps = _getInternalProps(newArgs);
     var nextProps = {};
@@ -124,7 +126,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
   /**
    * wrap component.componentWillUpdate and after that update props and transfer state
    */
-  var componentWillUpdate = new JsFunction.withThis((jsThis,jsNextProps, nextState, reactInternal){
+  var componentWillUpdate = new JsFunction.withThis((jsThis,jsNextProps, nextState, [reactInternal]){
     Component component  = _getComponent(jsThis);
 
     var newProps = _getInternalProps(jsNextProps);
@@ -149,7 +151,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
   /**
    * only wrap componentWillUnmount
    */
-  var componentWillUnmount = new JsFunction.withThis((jsThis, reactInternal) {
+  var componentWillUnmount = new JsFunction.withThis((jsThis, [reactInternal]) {
     _getComponent(jsThis).componentWillUnmount();
   });
 
