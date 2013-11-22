@@ -175,9 +175,9 @@ def _val(val):
 
 def _key(key):
     if key=='class':
-        return '"className"'
+        return "'className'"
     if key=='for':
-        return '"htmlFor"'
+        return "'htmlFor'"
     else:
         return "'"+key+"'"
 
