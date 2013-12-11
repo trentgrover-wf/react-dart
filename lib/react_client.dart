@@ -13,7 +13,7 @@ var _DOM = context['React']['DOM'];
 var _Object = context['Object'];
 
 const PROPS = 'props';
-const INTERNAL = '__internal__';
+const INTERNAL_PROPS = '__initial_props__';
 const COMPONENT = 'component';
 const IS_MOUNTED = 'isMounted';
 
@@ -35,12 +35,12 @@ newJsMap(Map map) {
 typedef JsObject ReactComponentFactory(Map props, [dynamic children]);
 typedef Component ComponentFactory();
 
+Map _internal = new Map();
 
 /** TODO Think about using Expandos */
-_getInternal(JsObject jsThis) => jsThis[PROPS][INTERNAL];
-_getProps(JsObject jsThis) => _getInternal(jsThis)[PROPS];
-_getComponent(JsObject jsThis) => _getInternal(jsThis)[COMPONENT];
-_getInternalProps(JsObject jsProps) => jsProps[INTERNAL][PROPS];
+_getProps(JsObject jsThis) => _internal[jsThis][PROPS];
+_getComponent(JsObject jsThis) => _internal[jsThis][COMPONENT];
+_getInternalProps(JsObject jsProps) => jsProps[INTERNAL_PROPS];
 
 ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
 
@@ -54,7 +54,8 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
    * @return jsProsp with internal with component.props and component
    */
   var getDefaultProps = new JsFunction.withThis((jsThis) {
-    var internal = _getInternal(jsThis);
+    _internal[jsThis] = {PROPS: jsThis[PROPS][INTERNAL_PROPS]};
+    var internal = _internal[jsThis];
     var redraw = () {
       if (internal[IS_MOUNTED]) {
         jsThis.callMethod('setState', []);
@@ -66,10 +67,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
     internal[COMPONENT] = component;
     internal[IS_MOUNTED] = false;
 
-    JsObject jsProps = newJsObjectEmpty();
-    jsProps[INTERNAL] = {PROPS: component.props, COMPONENT: component};
-
-    return jsProps;
+    return newJsObjectEmpty();
   });
 
   /**
@@ -86,7 +84,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
    * only wrap componentWillMount
    */
   var componentWillMount = new JsFunction.withThis((jsThis) {
-    _getInternal(jsThis)[IS_MOUNTED] = true;
+    _internal[jsThis][IS_MOUNTED] = true;
     _getComponent(jsThis)
         ..componentWillMount()
         ..transferComponentState();
@@ -108,11 +106,6 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
     var nextProps = {};
     nextProps.addAll(component.props);
     nextProps.addAll(newProps != null ? newProps : {});
-
-
-
-    /** add component to newArgs to keep component in internal */
-    newArgs[INTERNAL][COMPONENT] = component;
 
     /** call wrapped method */
     component.componentWillReceiveProps(nextProps);
@@ -176,8 +169,9 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
    * only wrap componentWillUnmount
    */
   var componentWillUnmount = new JsFunction.withThis((jsThis, [reactInternal]) {
-    _getInternal(jsThis)[IS_MOUNTED] = false;
+    _internal[jsThis][IS_MOUNTED] = false;
     _getComponent(jsThis).componentWillUnmount();
+    _internal.remove(jsThis);
   });
 
   /**
@@ -228,7 +222,7 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory) {
     /**
      * put props to internal part of args
      */
-    convertedArgs[INTERNAL] = {PROPS: extendedProps};
+    convertedArgs[INTERNAL_PROPS] = extendedProps;
 
     return reactComponent.apply([convertedArgs, new JsArray.from(children)]);
   };

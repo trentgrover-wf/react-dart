@@ -25,10 +25,6 @@ var Div = react.registerComponent(() => new _Div());
 
 class _Span extends react.Component{
 
-  shouldComponentUpdate(nProps, nState){
-    return nProps['children'][0] != props['children'][0];
-  }
-
   render(){
     return react.span(props, props['children']);
   }
@@ -47,23 +43,21 @@ class _Hello extends react.Component {
     });
   }
 
-  void redraw(){
-    setState({});
-  }
-
   render() {
     timeprint("rendering start");
     List<List<String>> data = props['data'];
     var children = [];
-    for(var elem in data){
+    for(var elem in data) {
+      //print(elem);
       children.add(
-          react.div({'key': elem[0]},[
-            react.span({}, elem[0]),
+          Span({'key': elem[0]},[
+            Span({}, elem[0]),
             " ",
-            react.span({}, elem[1])
+            Span({}, elem[1])
           ])
       );
     }
+    print(children.length);
 //    data.forEach((elem) => children.add(
 //        react.div({'key': elem[0]},[
 //          react.span({}, elem[0]),
@@ -72,7 +66,7 @@ class _Hello extends react.Component {
 //        ]))
 //    );
     timeprint("rendering almost ends");
-    var res = react.div({}, children);
+    var res = react.span({}, children);
     timeprint("rendering ends");
     return res;
   }
@@ -83,8 +77,9 @@ var Hello = react.registerComponent(() => new _Hello());
 void main() {
   setClientConfiguration();
   var data=[];
-  for(num i=0; i<1000; i++){
+  for(num i=0; i<300; i++){
     data.add(["name_$i", "value_$i"]);
   }
   react.renderComponent(Hello({"data": data}, []), querySelector('#content'));
+  data.removeAt(0);
 }
