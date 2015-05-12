@@ -98,7 +98,7 @@ abstract class Component {
 
   void componentWillMount() {}
 
-  void componentDidMount(/*DOMElement */ rootNode) {}
+  void componentDidMount() {}
 
   void componentWillReceiveProps(newProps) {}
 
@@ -106,7 +106,7 @@ abstract class Component {
 
   void componentWillUpdate(nextProps, nextState) {}
 
-  void componentDidUpdate(prevProps, prevState, /*DOMElement */ rootNode) {}
+  void componentDidUpdate(prevProps, prevState) {}
   
   void componentWillUnmount() {}
 

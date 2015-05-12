@@ -66,8 +66,7 @@ typedef Component ComponentFactory();
 
 class ReactComponentFactoryProxy implements Function {
   final ReactComponentFactory _call;
-  final JsFunction reactComponentFactory;
-  ReactComponentFactoryProxy(this.reactComponentFactory, this._call);
+  ReactComponentFactoryProxy(this._call);
 
   JsObject call(Map props, [dynamic children]) {
     return this._call(props, children);
@@ -147,8 +146,9 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    */
   var componentDidMount = new JsFunction.withThis((JsObject jsThis) => zone.run(() {
     //you need to get dom node by calling getDOMNode
-    var rootNode = jsThis.callMethod("getDOMNode");
-    _getComponent(jsThis).componentDidMount(rootNode);
+//    var rootNode = jsThis.callMethod("getDOMNode");
+//    _getComponent(jsThis).componentDidMount(rootNode);
+    _getComponent(jsThis).componentDidMount();
   }));
 
   _getNextProps(Component component, newArgs) {
@@ -217,9 +217,10 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
       new JsFunction.withThis((JsObject jsThis, prevProps, prevState, prevContext) => zone.run(() {
     var prevInternalProps = _getInternalProps(prevProps);
     //you don't get root node as parameter but need to get it directly
-    var rootNode = jsThis.callMethod("getDOMNode");
+//    var rootNode = jsThis.callMethod("getDOMNode");
     Component component = _getComponent(jsThis);
-    component.componentDidUpdate(prevInternalProps, component.prevState, rootNode);
+//    component.componentDidUpdate(prevInternalProps, component.prevState, rootNode);
+    component.componentDidUpdate(prevInternalProps, component.prevState);
   }));
 
   /**
@@ -268,39 +269,38 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
   ]);
 
   var call = (Map props, [dynamic children]) {
+
     if (children == null) {
       children = [];
     } else if (children is! Iterable) {
       children = [children];
     }
-    var extendedProps = new Map.from(props);
-    extendedProps['children'] = children;
 
     var convertedArgs = newJsObjectEmpty();
 
     /**
      * add key to args which will be passed to javascript react component
      */
-    if (extendedProps.containsKey('key')) {
-      convertedArgs['key'] = extendedProps['key'];
+    if (props.containsKey('key')) {
+      convertedArgs['key'] = props['key'];
     }
-
-    if (extendedProps.containsKey('ref')) {
-      convertedArgs['ref'] = extendedProps['ref'];
+    if (props.containsKey('ref')) {
+      convertedArgs['ref'] = props['ref'];
     }
 
     /**
      * put props to internal part of args
      */
-    convertedArgs[INTERNAL] = {PROPS: extendedProps};
+    convertedArgs[INTERNAL] = {PROPS: props};
 
-    return reactComponentFactory.apply([convertedArgs, new JsArray.from(children)]);
+    return reactComponentFactory.apply([convertedArgs, children]);
+
   };
 
   /**
    * return ReactComponentFactory which produce react component with set props and children[s]
    */
-  return new ReactComponentFactoryProxy(reactComponentFactory, call);
+  return new ReactComponentFactoryProxy(call);
 }
 
 
@@ -320,7 +320,18 @@ _reactDom(String name) {
     return _React['createElement'].apply([name, newJsMap(props), children]);
   };
 
-  return new ReactComponentFactoryProxy(_React['DOM'][name], call);
+  return new ReactComponentFactoryProxy(call);
+
+//class ReactComponentFactoryProxy implements Function {
+//  final ReactComponentFactory _call;
+//  final JsFunction reactComponentFactory;
+//  ReactComponentFactoryProxy(this.reactComponentFactory, this._call);
+//
+//  JsObject call(Map props, [dynamic children]) {
+//    return this._call(props, children);
+//  }
+//}
+
 }
 
 /**
