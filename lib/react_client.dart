@@ -8,7 +8,6 @@ import "package:react/react.dart";
 import "dart:js";
 import "dart:html";
 import "dart:async";
-import 'dart:mirrors';
 
 var _React = context['React'];
 var _Object = context['Object'];
@@ -47,15 +46,15 @@ class ReactJSComponent extends Component {
 
     ref = (name) {
       var ref = _source['refs'][name] as JsObject;
-      if (ref[PROPS][INTERNAL] != null) return ref[PROPS][INTERNAL][COMPONENT];
-      else return new ReactJSComponent(ref);
+      return new ReactJSComponent(ref);
     };
   }
 
-  noSuchMethod(Invocation invocation) {
-    /** fall back to underlying JS method if it exists */
-    return _source.callMethod(MirrorSystem.getName(invocation.memberName), invocation.positionalArguments);
-  }
+//  noSuchMethod(Invocation invocation) {
+//    /** fall back to underlying JS method if it exists */
+//    // TODO - do this without the mirror getName...
+//    return _source.callMethod(MirrorSystem.getName(invocation.memberName), invocation.positionalArguments);
+//  }
 }
 
 /**
@@ -74,16 +73,16 @@ class ReactComponentFactoryProxy implements Function {
 }
 
 /** TODO Think about using Expandos */
-_getInternal(JsObject jsThis) => jsThis[PROPS][INTERNAL];
-_getProps(JsObject jsThis) => _getInternal(jsThis)[PROPS];
-_getComponent(JsObject jsThis) => _getInternal(jsThis)[COMPONENT];
 _getInternalProps(JsObject jsProps) => jsProps[INTERNAL][PROPS];
 
 ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Iterable<String> skipMethods = const []]) {
 
   var zone = Zone.current;
 
+  Component component = componentFactory();
+
   /**
+   * // TODO - looks like this description belongs with the getInitialState implementation instead...
    * wrapper for getDefaultProps.
    * Get internal, create component and place it to internal.
    *
@@ -93,7 +92,11 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    * @return jsProsp with internal with component.props and component
    */
   var getDefaultProps = new JsFunction.withThis((jsThis) => zone.run(() {
-    return newJsObjectEmpty();
+//    print('DART - getDefaultProps');
+//    return newJsObjectEmpty();
+//    var defProps = newJsObjectEmpty();
+//    defProps[INTERNAL] = {PROPS: component.getDefaultProps()};
+    return newJsMap(component.getDefaultProps());
   }));
 
   /**
@@ -102,80 +105,78 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    * @return empty JsObject as default state for javascript react component
    */
   var getInitialState = new JsFunction.withThis((jsThis) => zone.run(() {
-
-    var internal = _getInternal(jsThis);
+//    print('DART - getInitialState');
+/*
     var redraw = () {
-      if (internal[IS_MOUNTED]) {
+      if (jsThis.callMethod('isMounted')) {
         jsThis.callMethod('setState', [emptyJsMap]);
       }
     };
 
     var getRef = (name) {
       var ref = jsThis['refs'][name] as JsObject;
-      if (ref[PROPS][INTERNAL] != null) return ref[PROPS][INTERNAL][COMPONENT];
-      else return new ReactJSComponent(ref);
+      return new ReactJSComponent(ref);
     };
-    
+
     var getDOMNode = () {
       return jsThis.callMethod("getDOMNode");
     };
 
-    Component component = componentFactory()
-        ..initComponentInternal(internal[PROPS], redraw, getRef, getDOMNode);
-
-    internal[COMPONENT] = component;
-    internal[IS_MOUNTED] = false;
-    internal[PROPS] = component.props;
-
-    _getComponent(jsThis).initStateInternal();
-    return newJsObjectEmpty();
+    // init the rest of the component here because we need access to jsThis
+    component
+      ..initComponentInternal(redraw, getRef, getDOMNode)
+      ..initStateInternal();
+*/
+    // this is the actual return value of this base method
+//    return newJsObjectEmpty();
+    return newJsMap(component.getInitialState());
   }));
 
   /**
    * only wrap componentWillMount
    */
   var componentWillMount = new JsFunction.withThis((jsThis) => zone.run(() {
-    _getInternal(jsThis)[IS_MOUNTED] = true;
-    _getComponent(jsThis)
-        ..componentWillMount()
-        ..transferComponentState();
+//    print('DART - componentWillMount');
+//    component
+//        ..componentWillMount()
+//        ..transferComponentState();
+    component.componentWillMount();
   }));
 
   /**
    * only wrap componentDidMount
    */
   var componentDidMount = new JsFunction.withThis((JsObject jsThis) => zone.run(() {
-    //you need to get dom node by calling getDOMNode
-//    var rootNode = jsThis.callMethod("getDOMNode");
-//    _getComponent(jsThis).componentDidMount(rootNode);
-    _getComponent(jsThis).componentDidMount();
+//    print('DART - componentDidMount');
+    component.componentDidMount();
   }));
-
+/*
   _getNextProps(Component component, newArgs) {
     var newProps = _getInternalProps(newArgs);
     return {}
-      ..addAll(component.getDefaultProps())
+//      ..addAll(component.getDefaultProps())
       ..addAll(newProps != null ? newProps : {});
   }
 
   _afterPropsChange(Component component, newArgs) {
     /** add component to newArgs to keep component in internal */
-    newArgs[INTERNAL][COMPONENT] = component;
+//    newArgs[INTERNAL][COMPONENT] = component;
 
     /** update component.props */
     component.props = _getNextProps(component, newArgs);
 
     /** update component.state */
-    component.transferComponentState();
+//    component.transferComponentState();
   }
-
+*/
   /**
    * Wrap componentWillReceiveProps
    */
   var componentWillReceiveProps =
       new JsFunction.withThis((jsThis, newArgs, [reactInternal]) => zone.run(() {
-    var component = _getComponent(jsThis);
-    component.componentWillReceiveProps(_getNextProps(component, newArgs));
+//        print('DART - componentWillReceiveProps');
+//    component.componentWillReceiveProps(_getNextProps(component, newArgs));
+        component.componentWillReceiveProps(newArgs);
   }));
 
   /**
@@ -184,19 +185,20 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    */
   var shouldComponentUpdate =
       new JsFunction.withThis((jsThis, newArgs, nextState, nextContext) => zone.run(() {
-    Component component  = _getComponent(jsThis);
+//        print('DART - shouldComponentUpdate');
+      return component.shouldComponentUpdate(newArgs, nextState);
     /** use component.nextState where are stored nextState */
-    if (component.shouldComponentUpdate(_getNextProps(component, newArgs),
-                                        component.nextState)) {
-      return true;
-    } else {
-      /**
-       * if component shouldnt update, update props and tranfer state,
-       * becasue willUpdate will not be called and so it will not do it.
-       */
-      _afterPropsChange(component, newArgs);
-      return false;
-    }
+//    if (component.shouldComponentUpdate(_getNextProps(component, newArgs),
+//                                        component.nextState)) {
+//      return true;
+//    } else {
+//      /**
+//       * if component shouldn't update, update props and transfer state,
+//       * because willUpdate will not be called and so it will not do it.
+//       */
+//      _afterPropsChange(component, newArgs);
+//      return false;
+//    }
   }));
 
   /**
@@ -204,10 +206,11 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    */
   var componentWillUpdate =
       new JsFunction.withThis((jsThis, newArgs, nextState, [reactInternal]) => zone.run(() {
-    Component component  = _getComponent(jsThis);
-    component.componentWillUpdate(_getNextProps(component, newArgs),
-                                  component.nextState);
-    _afterPropsChange(component, newArgs);
+//        print('DART - componentWillUpdate');
+      component.componentWillUpdate(newArgs, nextState);
+//    component.componentWillUpdate(_getNextProps(component, newArgs),
+//                                  component.nextState);
+//    _afterPropsChange(component, newArgs);
   }));
 
   /**
@@ -215,12 +218,10 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    */
   var componentDidUpdate =
       new JsFunction.withThis((JsObject jsThis, prevProps, prevState, prevContext) => zone.run(() {
-    var prevInternalProps = _getInternalProps(prevProps);
-    //you don't get root node as parameter but need to get it directly
-//    var rootNode = jsThis.callMethod("getDOMNode");
-    Component component = _getComponent(jsThis);
-//    component.componentDidUpdate(prevInternalProps, component.prevState, rootNode);
-    component.componentDidUpdate(prevInternalProps, component.prevState);
+        component.componentDidUpdate(prevProps, prevState);
+//        print('DART - componentDidUpdate');
+//    var prevInternalProps = _getInternalProps(prevProps);
+//    component.componentDidUpdate(prevInternalProps, component.prevState);
   }));
 
   /**
@@ -228,15 +229,17 @@ ReactComponentFactory _registerComponent(ComponentFactory componentFactory, [Ite
    */
   var componentWillUnmount =
       new JsFunction.withThis((jsThis, [reactInternal]) => zone.run(() {
-    _getInternal(jsThis)[IS_MOUNTED] = false;
-    _getComponent(jsThis).componentWillUnmount();
+//        print('DART - componentWillUnmount');
+    component.componentWillUnmount();
   }));
 
   /**
    * only wrap render
    */
   var render = new JsFunction.withThis((jsThis) => zone.run(() {
-    return _getComponent(jsThis).render();
+//    print('DART - render');
+//    return component.render();
+    return component.render();
   }));
 
   var skipableMethods = ['componentDidMount', 'componentWillReceiveProps',
@@ -321,17 +324,6 @@ _reactDom(String name) {
   };
 
   return new ReactComponentFactoryProxy(call);
-
-//class ReactComponentFactoryProxy implements Function {
-//  final ReactComponentFactory _call;
-//  final JsFunction reactComponentFactory;
-//  ReactComponentFactoryProxy(this.reactComponentFactory, this._call);
-//
-//  JsObject call(Map props, [dynamic children]) {
-//    return this._call(props, children);
-//  }
-//}
-
 }
 
 /**
@@ -358,7 +350,7 @@ _getValueFromDom(domElem) {
 /**
  * set value to props based on type of input.
  *
- * Specialy, it recognized chceckbox.
+ * Checkbox is a special case.
  */
 _setValueToProps(Map props, val) {
   if (_isCheckbox(props)) {
@@ -385,10 +377,10 @@ _convertBoundValues(Map args) {
     args['value'] = boundValue[0];
     var onChange = args["onChange"];
     /**
-     * put new function into onChange event hanlder.
+     * put new function into onChange event handler.
      *
-     * If there was something listening for taht event,
-     * trigger it and return it's return value.
+     * If there was something listening for that event,
+     * trigger it and return its return value.
      */
     args['onChange'] = (e) {
       boundValue[1](_getValueFromDom(e.target));

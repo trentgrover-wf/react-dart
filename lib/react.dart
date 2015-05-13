@@ -8,7 +8,7 @@
 library react;
 
 abstract class Component {
-  Map props;
+  Map props = {};
 
   dynamic ref;
   dynamic getDOMNode;
@@ -23,14 +23,15 @@ abstract class Component {
     this._jsRedraw = _jsRedraw;
     this.ref = ref;
     this.getDOMNode = getDOMNode;
-    _initProps(props);
+//    _initProps(props);
+    this.props.addAll(getDefaultProps());
   }
 
-  _initProps(props) {
-    this.props = {}
-      ..addAll(getDefaultProps())
-      ..addAll(props);
-  }
+//  _initProps(props) {
+//    this.props = {}
+//      ..addAll(getDefaultProps())
+//      ..addAll(props);
+//  }
 
   initStateInternal() {
     this.state = new Map.from(getInitialState());
@@ -41,10 +42,10 @@ abstract class Component {
   Map state = {};
 
   /**
-   * private _nextState and _prevState are usefull for methods shouldComponentUpdate,
+   * private _nextState and _prevState are useful for methods shouldComponentUpdate,
    * componentWillUpdate and componentDidUpdate.
    *
-   * Use of theese private variables is implemented in react_client or react_server
+   * Use of these private variables is implemented in react_client or react_server
    */
   Map _prevState = null;
   Map _nextState = null;
